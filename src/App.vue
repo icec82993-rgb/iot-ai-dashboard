@@ -2,8 +2,8 @@
   <div class="app-wrapper">
     <header class="screen-header">
       <div class="header-left">🌐 SYSTEM WORKSPACE</div>
-      <div class="header-title">物联网传感器高频大数据流监控大屏</div>
-      <div class="header-right">VITE + VUE 3 PERFORMANCE SANDBOX</div>
+      <div class="header-title">陕北矿业井下通风与设备状态实时监控平台</div>
+      <div class="header-right">MINING SAFETY MONITORING SYSTEM</div>
     </header>
 
     <main class="screen-body">

@@ -1,39 +1,37 @@
-const WebSocket = require('ws');
+import { WebSocketServer } from 'ws';
+import mqtt from 'mqtt';
 
-// 1. 初始化本地高性能 WebSocket 服务器 (监听 8081 端口)
-const wss = new WebSocket.Server({ port: 8081 });
-console.log('🚀 [IoT Gateway] Node.js 网关服务已启动，正在监听端口 8081...');
+// 1. 初始化 WebSocket 服务 (监听 8081 端口，给 Vue 前端供数)
+const wss = new WebSocketServer({ port: 8081 });
+console.log('🚀 [IoT Gateway] Node.js 网关服务已启动，正在监听 WebSocket 端口 8081...');
 
-// 2. 模拟 MQTT 代理服务器的数据流入 (生产环境下此处为 mqtt.connect)
-const simulateMqttBroker = (callback) => {
-  setInterval(() => {
-    const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`;
-    
-    // 组装传感器高频报文
-    const rawPayload = {
-      time: timeStr,
-      deviceId: Math.floor(Math.random() * 5) + 1001,
-      val1: (Math.random() * 35 + 55).toFixed(2), // 模拟温度，偶发性超过 85°C 触发异常阈值
-      val2: (Math.random() * 5).toFixed(2)         // 振幅
-    };
-    callback(JSON.stringify(rawPayload));
-  }, 50); // 50ms 高频吐字数据
-};
+// 2. 连接 Linux 本地的真实 Mosquitto MQTT Broker (默认端口 1883)
+const mqttClient = mqtt.connect('mqtt://127.0.0.1:1883');
 
-// 3. 网关路由调度：接收 MQTT 报文并实时广播给 Vue 前端
+mqttClient.on('connect', () => {
+  console.log('✅ [MQTT Client] 成功连接至 Linux Mosquitto Broker (127.0.0.1:1883)');
+  // 订阅工业传感器主题
+  mqttClient.subscribe('coal/sensor', (err) => {
+    if (!err) {
+      console.log('📡 [MQTT Client] 已成功订阅 Topic: coal/sensor');
+    }
+  });
+});
+
+// 3. 收到真实 MQTT 报文时，经由 WebSocket 管道实时广播给 Vue 前端
+mqttClient.on('message', (topic, message) => {
+  const payloadStr = message.toString();
+  console.log(`📩 [MQTT -> Gateway] 收到报文 [${topic}]: ${payloadStr}`);
+
+  wss.clients.forEach((client) => {
+    if (client.readyState === 1) { // 1 代表 WebSocket.OPEN
+      client.send(payloadStr);
+    }
+  });
+});
+
 wss.on('connection', (ws) => {
   console.log('🔗 [Gateway] 前端大屏可视化客户端已成功建立 WebSocket 管道。');
-  
-  const sendData = (data) => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(data);
-    }
-  };
-
-  // 启动物联网数据流
-  simulateMqttBroker(sendData);
-
   ws.on('close', () => {
     console.log('❌ [Gateway] 前端客户端已断开连接。');
   });

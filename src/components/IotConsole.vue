@@ -1,7 +1,7 @@
 <template>
   <div class="iot-console">
     <div class="control-card">
-      <h3>智能网关控制枢纽</h3>
+      <h3>边缘通讯网关状态</h3>
       <div class="status-grid">
         <div class="status-item">
           <span class="label">当前运行节点:</span>
@@ -20,7 +20,7 @@
 
     <div class="log-card">
       <div class="card-header">
-        <h4>毫秒级突发数据流接收控制台 (滑动窗口: 50)</h4>
+        <h4>MQTT 报文实时解析与监听日志 (滑动窗口: 50)</h4>
         <button @click="clearLogs" class="btn-clear">清空日志</button>
       </div>
       <div class="log-container" ref="logContainer">
@@ -40,14 +40,14 @@
 
     <div class="ai-card" :class="{ 'ai-card-active': aiResult }">
       <div class="ai-header">
-        <h4>🤖 DeepSeek AI Tool Calling 工业故障判定决策链</h4>
+        <h4>🤖 采掘面安全阈值预警与智能诊断模块</h4>
         <span v-if="isAiLoading" class="ai-status loading-text">正在分析...</span>
         <span v-else class="ai-status text-muted">边缘拦截就绪</span>
       </div>
       
       <div class="ai-body">
         <div v-if="!isAiLoading && !aiResult" class="ai-placeholder">
-          物理层阈值安全。若温度跨越临界点（>85°C），系统将自动截获瞬时异常帧，激活大模型结构化决策。
+          监测物理层传感器指标。当瓦斯浓度（>1.0%）或设备机温（>85℃）跨越安全阈值时，自动触发边缘安全告警并联动风机控制系统。
         </div>
 
         <div v-if="isAiLoading" class="ai-loading-view">
