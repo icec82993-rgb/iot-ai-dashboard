@@ -1,38 +1,62 @@
-# 物联网传感器高频大数据流监控大屏 🌐
+# 陕北矿业井下通风与设备状态实时监控平台
 
-基于 **Vue 3 (SFC) + Vite + ECharts + Node.js** 构建的工业级物联网（IoT）毫秒级高频突发数据流动态看板。本项目专为高频、并发传感器报文涌入场景设计，核心攻坚**“全栈高频数据管道调度”**、**“前端低延迟增量渲染”**与**“大模型 Tool Calling 在工业故障诊断中的落地应用”**。
-
----
-
-## 🚀 核心全栈技术栈 (Full-Stack Infrastructure)
-* **后端网关层**：Node.js 异步非阻塞架构、WebSocket (ws) 高频双向数据管道驱动（向下仿真订阅 MQTT 物理报文广播）
-* **前端可视层**：Vue 3 (Composition API / <script setup> 规范)、ECharts 5.x (Canvas 高性能双轴动态渲染)
-* **AI 智能化链路**：DeepSeek LLM 大模型、Function Calling / Tool Calling 结构化故障决策链协同
+本系统针对采矿工程井下安全监控场景，设计并实现了一套工业级边缘物联网（IoT）数据采集与实时传输系统。架构基于 Linux/Ubuntu 环境部署 MQTT 消息中间件，配合 Node.js 边缘通讯网关与 Vue3 可视化大屏，实现了井下传感器报文的高频低时延解析、跨协议分发与毫秒级图表渲染。
 
 ---
 
-## ⚡ 工业级技术攻坚防线 (Performance & Architecture)
+## 🛠 核心技术栈与网络架构
 
-### 1. 跨端全栈异步数据流调度（Node.js + WebSocket 网关）
-* **设计方案**：项目自研轻量级 Node.js 服务端作为物理层网关。下位机高频传感器接收到 MQTT 报文流入后，由网关通过异步非阻塞事件循环进行消息解析，封装为毫秒级突发高频流，再利用双向 WebSocket 管道直连 Vue 前端进行瞬时广播，彻底摆脱传统 HTTP 拉取产生的严重时间延迟。
+* **物理采集仿真层**：Python 3 (`paho-mqtt`)
+* **消息中间件 (Broker)**：Linux (WSL2/Ubuntu 22.04) + Mosquitto (MQTT 协议，端口 `1883`)
+* **边缘通讯网关 (Gateway)**：Node.js (ES Modules) + `mqtt.js` + `ws` (WebSocket，端口 `8081`)
+* **前端可视化层**：Vue 3 + Vite + ECharts
 
-### 2. 智能化协同决策（DeepSeek AI Tool Calling 应用）
-* **设计方案**：在 Vue 前端架构中设计高频数值阈值拦截器（拦截点：温度 > 85°C 物理临界值）。一旦触发，系统自动截获当前帧上下文，作为动态参数编排进 System Prompt，向大模型发起协同调用。利用 Tool Calling 机制强制约束模型输出结构化 JSON，实现对复杂物理设备故障的秒级原因判定与运维建议分发。
+### 数据通信流转图
 
-### 3. 前端响应式依赖解耦（去 Proxy 深度劫持）
-* **性能优化**：若将 ECharts 底层坐标数据挂载在 Vue 的 `ref` 上，高频涌入的坐标点会引发 Proxy 极其剧烈的深度依赖追踪内耗。本项目将核心时间轴、温度、振幅数据强制隔离在普通的 JavaScript 原生数组中，与 Vue 侦听器完全解耦，攻克了高频场景下的 CPU 内存暴涌问题。
-
-### 4. 滑动窗口缓冲区与增量像素渲染
-* **性能优化**：控制台与图表层架设长度固定为 50 的滑动窗口（Sliding Window Buffer），通过 `shift()` 剔除历史过期节点，严格锁定页面 DOM 总数。图表放弃全量 `setOption` 重绘，仅传入增量数据补丁，由 ECharts 执行局部像素重组，渲染吞吐率大幅提升。
-
----
-
-## 📁 规范化企业级组件架构
 ```text
-├── server/
-│   └── index.js          # 高性能 Node.js 通信网关 (仿真 MQTT 转发)
-├── src/
-│   ├── components/
-│   │   ├── IotChart.vue   # ECharts 纯净渲染引擎 (负责增量补丁追加)
-│   │   └── IotConsole.vue # 控制台主枢纽 (负责真实网关接收与 AI 协同分析)
-│   └── App.vue           # 父级全栈数据中转总管
+[井下仿真传感器 (Python)]
+         │
+         ▼  MQTT 报文 (TCP :1883 / Topic: coal/sensor)
+[Mosquitto MQTT Broker (Linux/WSL2)]
+         │
+         ▼  Pub/Sub 模式异步订阅
+[边缘通讯网关 (Node.js Gateway)]
+         │
+         ▼  WebSocket 长连接广播 (WS :8081)
+[井下安全监控大屏 (Vue3 + ECharts)]
+
+
+系统部署与运行指南
+1. 启动 Linux MQTT Broker
+在 Linux (Ubuntu / WSL2) 环境下检查并启动 Mosquitto 服务：
+
+Bash
+sudo service mosquitto status
+# 如未启动，运行以下命令：
+sudo service mosquitto start
+2. 启动 Node.js 边缘网关
+进入后端项目根目录，安装依赖并启动通讯网关：
+
+Bash
+npm install
+node server/index.js
+控制台将打印 ✅ [MQTT Client] 成功连接至 Linux Mosquitto Broker 及 🚀 [IoT Gateway] Node.js 网关服务已启动。
+
+3. 启动 Vue3 前端大屏
+Bash
+npm run dev
+根据控制台提示在浏览器中打开页面（通常为 http://localhost:5173）。
+
+4. 运行井下传感器数据模拟器
+在 Linux 终端中运行 Python 数据仿真脚本：
+
+Bash
+python3 mock_sensor.py
+脚本将以 1 秒/次的频率自动推送瓦斯浓度、设备温度及机身振动幅度等采样报文。
+
+📊 监控平台核心功能
+实时报文广播：边缘网关自动接收 MQTT 报文并通过 WebSocket 分发，避免 HTTP 轮询带来的带宽浪费与高时延。
+
+安全阈值预警：支持对瓦斯浓度（>1.0%）与设备机温（>85℃）跨越临界值时触发实时警报提示。
+
+动态图表平滑渲染：基于 ECharts 实现滑动窗口数据更新，真实还原井下采掘面环境监控曲线。
