@@ -1,38 +1,38 @@
-import { WebSocketServer } from 'ws';
 import mqtt from 'mqtt';
+import { WebSocketServer } from 'ws';
 
-// 1. 初始化 WebSocket 服务 (监听 8081 端口，给 Vue 前端供数)
-const wss = new WebSocketServer({ port: 8081 });
-console.log('🚀 [IoT Gateway] Node.js 网关服务已启动，正在监听 WebSocket 端口 8081...');
-
-// 2. 连接 Linux 本地的真实 Mosquitto MQTT Broker (默认端口 1883)
+// 1. 连接 Linux 本地的 Mosquitto 服务
 const mqttClient = mqtt.connect('mqtt://127.0.0.1:1883');
 
+// 2. 启动 WebSocket 服务，给前端提供数据
+const wss = new WebSocketServer({ port: 8081 });
+
+let wsClient = null;
+
+// MQTT 连接成功后的回调
 mqttClient.on('connect', () => {
-  console.log('✅ [MQTT Client] 成功连接至 Linux Mosquitto Broker (127.0.0.1:1883)');
-  // 订阅工业传感器主题
+  console.log('MQTT 连接成功了！');
+  // 订阅煤矿传感器的 topic
   mqttClient.subscribe('coal/sensor', (err) => {
     if (!err) {
-      console.log('📡 [MQTT Client] 已成功订阅 Topic: coal/sensor');
+      console.log('成功订阅了 coal/sensor 主题');
     }
   });
 });
 
-// 3. 收到真实 MQTT 报文时，经由 WebSocket 管道实时广播给 Vue 前端
-mqttClient.on('message', (topic, message) => {
-  const payloadStr = message.toString();
-  console.log(`📩 [MQTT -> Gateway] 收到报文 [${topic}]: ${payloadStr}`);
-
-  wss.clients.forEach((client) => {
-    if (client.readyState === 1) { // 1 代表 WebSocket.OPEN
-      client.send(payloadStr);
-    }
-  });
-});
-
+// 监听 WebSocket 连接（前端连进来）
 wss.on('connection', (ws) => {
-  console.log('🔗 [Gateway] 前端大屏可视化客户端已成功建立 WebSocket 管道。');
-  ws.on('close', () => {
-    console.log('❌ [Gateway] 前端客户端已断开连接。');
-  });
+  console.log('Vue 前端连上来了！');
+  wsClient = ws;
+});
+
+// 收到 MQTT 传感器数据时的处理
+mqttClient.on('message', (topic, message) => {
+  const dataStr = message.toString();
+  console.log('收到传感器数据:', dataStr);
+
+  // 如果前端页面开着，就把数据发给前端
+  if (wsClient && wsClient.readyState === 1) {
+    wsClient.send(dataStr);
+  }
 });
